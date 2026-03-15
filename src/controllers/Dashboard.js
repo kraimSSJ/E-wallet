@@ -1,6 +1,6 @@
 import { database } from "../models/database.js";
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
+
 const stored = sessionStorage.getItem("currentUser");
 if (!stored) window.location.href = "login.html";
 
@@ -8,11 +8,9 @@ const user = JSON.parse(stored);
 const { name, wallet } = user;
 const { currency, cards, transactions } = wallet;
 
-// ── Utils ─────────────────────────────────────────────────────────────────────
 const $   = (id) => document.getElementById(id);
 const fmt = (n)  => Number(n).toLocaleString("fr-MA", { minimumFractionDigits: 2 }) + " " + currency;
 
-// ── Overview ──────────────────────────────────────────────────────────────────
 $("greetingName").textContent     = name;
 $("availableBalance").textContent = fmt(wallet.balance);
 $("activeCards").textContent      = cards.length;
@@ -20,7 +18,6 @@ $("monthlyIncome").textContent    = fmt(transactions.filter(t => t.type === "cre
 $("monthlyExpenses").textContent  = fmt(transactions.filter(t => t.type === "debit").reduce((s, t) => s + t.amount, 0));
 $("currentDate").textContent      = new Date().toLocaleDateString("fr-MA", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
 
-// ── Transfer ────────────────────────────────────────────────────────────────
 const beneficiary = $("beneficiary");
 if (beneficiary) {
   beneficiary.innerHTML = `<option value="" disabled selected>Choisir un bénéficiaire</option>`
