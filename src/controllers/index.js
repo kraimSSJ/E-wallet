@@ -1,12 +1,13 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const loginBtn  = document.getElementById("Loginbtn");
-  const signinBtn = document.getElementById("Signinbtn");
+// recuperation des elements DOM
+const loginBtn  = document.getElementById("Loginbtn");
+//const signinBtn = document.getElementById("Signinbtn");
 
-  loginBtn.addEventListener("click", () => {
-    window.location.href = "login.html";
-  });
+// bouton Login
+loginBtn.addEventListener("click", handleLogin);
 
-  signinBtn.addEventListener("click", () => {
-    window.location.href = "signin.html";
-  });
-});
+function handleLogin() {
+    loginBtn.textContent = "loading...";
+    setTimeout(() => {
+        document.location = "login.html";
+    }, 2000);
+}
