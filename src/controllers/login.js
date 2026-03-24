@@ -1,40 +1,32 @@
-import finduserbymail from '../models/database.js';
 
-const $ = (id) => document.getElementById(id);
+import {finduserbymail} from "../Model/database.js";
 
-const affihcheError = (msg) => {
-  const el = $("error");
-  el.textContent    = msg;
-  el.style.color    = "red";
-  el.style.display  = "block";
-  el.style.fontSize = "0.9rem";
-  el.style.marginBottom = "10px";
-};
+// recuperation des elements DOM
+const mailInput = document.getElementById("mail");
+const passwordInput  = document.getElementById("password");
+const submitBtn = document.getElementById("submitbtn");
+const display   = document.getElementById("display");
+// event listener sur le bouton Se connecter
+submitBtn.addEventListener("click", handleSubmit);
 
-$("display").addEventListener("click", () => {
-  const hidden = $("password").type === "password";
-  $("password").type       = hidden ? "text" : "password";
-  $("display").textContent = hidden ? "🙈" : "👁";
-});
+function handleSubmit() {
+    let mail = mailInput.value;
+    let password = passwordInput.value;
 
-$("submitbtn").addEventListener("click", () => {
-  const email    = $("mail").value.trim();
-  const password = $("password").value.trim();
+    if (!mail || password === "") {
+        alert("Bad credentials.");
+    } else {
+        submitBtn.textContent = "Checking!!!";
+        const user = finduserbymail(mail, password);
 
-  if (!email || !password) {
-    affihcheError("Veuillez remplir tous les champs.");
-    return;
-  }
-
-  const user = finduserbymail(email, password);
-
-  if (!user) {
-   affihcheError("Email ou mot de passe incorrect.");
-    $("password").value = "";
-    $("password").focus();
-    return;
-  }
-
-  sessionStorage.setItem("currentUser", JSON.stringify(user));
-  window.location.href = "/src/view/dashboard.html";
-});
+        setTimeout(() => {
+            if (user) {
+                sessionStorage.setItem("currentUser", JSON.stringify(user));
+                document.location = "dashboard.html";
+            } else {
+                alert("Bad credentials.");
+                submitBtn.textContent = "Se connecter";
+            }
+        }, 2000);
+    }
+}
