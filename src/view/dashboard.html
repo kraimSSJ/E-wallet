@@ -11,7 +11,7 @@
   <!-- Header avec navigation spécifique au dashboard -->
 <header>
     <nav class="navbar">
-      <a href="/index.html" class="logo">
+      <a href="/src/view/index.html" class="logo">
         <img src="/assets/e-wallet-logo.avif" alt="Logo E-Wallet">
       </a>
       <ul class="nav-links">
@@ -181,7 +181,7 @@
 
 <div>
         <!-- Section Transferts (masquée par défaut) -->
-<section id="transfer-section" class="transfer-section hidden">
+<section id="transferPopup" class="transfer-section" style="display:none;">
   <div class="section-header">
     <h2>Effectuer un transfert</h2>
     <button class="btn btn-close" id="closeTransferBtn">
@@ -249,6 +249,44 @@
       </div>
     </form>
     </div>
+</section>
+    <section id="topupPopup" class="transfer-section" style="display:none;">
+  <div class="section-header">
+    <h2>Recharger mon wallet</h2>
+    <button class="btn btn-close" id="closeTopupBtn">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  <div class="transfer-container">
+    <div class="transfer-form">
+      <div class="form-group">
+        <label for="topupCard">
+          <i class="fas fa-credit-card"></i> Carte de paiement
+        </label>
+        <select id="topupCard" name="topupCard" required>
+          <option value="" disabled selected>Sélectionner une carte</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="topupAmount">
+          <i class="fas fa-coins"></i> Montant
+        </label>
+        <div class="amount-input">
+          <input type="number" id="topupAmount" min="10" max="10000" step="0.01" placeholder="0.00" required>
+          <span class="currency">MAD</span>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" id="cancelTopupBtn">
+          Annuler
+        </button>
+        <button type="button" class="btn btn-primary" id="submitTopupBtn">
+          <i class="fas fa-plus-circle"></i> Recharger
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
   <!-- Footer -->
   <footer>
     <p>&copy; 2026 E-Wallet. Tous droits réservés.</p>
