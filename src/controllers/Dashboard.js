@@ -1,6 +1,14 @@
-import {getbeneficiaries ,finduserbyaccount,findbeneficiarieByid} from "../Model/database.js";
+import { database, getbeneficiaries, finduserbyaccount, findbeneficiarieByid } from "../models/database.js";
+
 const user = JSON.parse(sessionStorage.getItem("currentUser"));
-// DOM elements
+
+// ======================= GUARD ======================= //
+if (!user) {
+  
+  window.location.href = "/index.html";
+}
+
+// ======================= DOM ======================= //
 const greetingName = document.getElementById("greetingName");
 const currentDate = document.getElementById("currentDate");
 const solde = document.getElementById("availableBalance");
@@ -8,29 +16,35 @@ const incomeElement = document.getElementById("monthlyIncome");
 const expensesElement = document.getElementById("monthlyExpenses");
 const activecards = document.getElementById("activeCards");
 const transactionsList = document.getElementById("recentTransactionsList");
+
 const transferBtn = document.getElementById("quickTransfer");
 const transferSection = document.getElementById("transferPopup");
 const closeTransferBtn = document.getElementById("closeTransferBtn");
 const cancelTransferBtn = document.getElementById("cancelTransferBtn");
+
 const beneficiarySelect = document.getElementById("beneficiary");
 const sourceCard = document.getElementById("sourceCard");
-const submitTransferBtn=document.getElementById("submitTransferBtn");
+const submitTransferBtn = document.getElementById("submitTransferBtn");
 
-// Guard
-if (!user) {
-  alert("User not authenticated");
-  window.location.href = "/index.html";
-}
+const topupBtn = document.getElementById("quickTopup");
+const topupSection = document.getElementById("topupPopup");
+const closeTopupBtn = document.getElementById("closeTopupBtn");
+const cancelTopupBtn = document.getElementById("cancelTopupBtn");
+const submitTopupBtn = document.getElementById("submitTopupBtn");
+const topupCard = document.getElementById("topupCard");
 
-// Events
-  transferBtn.addEventListener("click", handleTransfersection);
-  closeTransferBtn.addEventListener("click", closeTransfer);
-  cancelTransferBtn.addEventListener("click", closeTransfer);
-  submitTransferBtn.addEventListener("click",handleTransfer)
+// ======================= EVENTS ======================= //
+transferBtn.addEventListener("click", openTransfer);
+closeTransferBtn.addEventListener("click", closeTransfer);
+cancelTransferBtn.addEventListener("click", closeTransfer);
+submitTransferBtn.addEventListener("click", handleTransfer);
 
-
-// Retrieve dashboard data
-const getDashboardData = () => {
+topupBtn.addEventListener("click", openTopup);
+closeTopupBtn.addEventListener("click", closeTopup);
+cancelTopupBtn.addEventListener("click", closeTopup);
+submitTopupBtn.addEventListener("click", handleTopup);
+// ======================= DASHBOARD ======================= //
+function getDashboardData() {
   const monthlyIncome = user.wallet.transactions
     .filter(t => t.type === "credit")
     .reduce((total, t) => total + t.amount, 0);
@@ -42,297 +56,277 @@ const getDashboardData = () => {
   return {
     userName: user.name,
     currentDate: new Date().toLocaleDateString("fr-FR"),
-    availableBalance: `${user.wallet.balance} ${user.wallet.currency}`,
-    activeCards: user.wallet.cards.length,
-    monthlyIncome: `${monthlyIncome} MAD`,
-    monthlyExpenses: `${monthlyExpenses} MAD`,
+    balance: `${user.wallet.balance} ${user.wallet.currency}`,
+    cards: user.wallet.cards.length,
+    income: `${monthlyIncome} MAD`,
+    expenses: `${monthlyExpenses} MAD`,
   };
-};
-
-function renderDashboard(){
-const dashboardData = getDashboardData();
-if (dashboardData) {
-  greetingName.textContent = dashboardData.userName;
-  currentDate.textContent = dashboardData.currentDate;
-  solde.textContent = dashboardData.availableBalance;
-  incomeElement.textContent = dashboardData.monthlyIncome;
-  expensesElement.textContent = dashboardData.monthlyExpenses;
-  activecards.textContent = dashboardData.activeCards;
 }
-// Display transactions
-transactionsList.innerHTML = "";
-user.wallet.transactions.forEach(transaction => {
-  const transactionItem = document.createElement("div");
-  transactionItem.className = "transaction-item";
-  transactionItem.innerHTML = `
-    <div>${transaction.date}</div>
-    <div>${transaction.amount} MAD</div>
-    <div>${transaction.type}</div>
-  `;
-  transactionsList.appendChild(transactionItem);
-});
 
+function renderDashboard() {
+  const data = getDashboardData();
+
+  greetingName.textContent = data.userName;
+  currentDate.textContent = data.currentDate;
+  solde.textContent = data.balance;
+  incomeElement.textContent = data.income;
+  expensesElement.textContent = data.expenses;
+  activecards.textContent = data.cards;
+
+  transactionsList.innerHTML = "";
+
+  user.wallet.transactions.forEach(t => {
+    const div = document.createElement("div");
+    div.className = "transaction-item";
+    div.innerHTML = `
+      <div>${t.date}</div>
+      <div>${t.amount} MAD</div>
+      <div>${t.type}</div>
+    `;
+    transactionsList.appendChild(div);
+  });
 }
+
 renderDashboard();
 
-// Transfer popup
-function closeTransfer() {
-  transferSection.classList.remove("active");
-  document.body.classList.remove("popup-open");
-}
-
-function handleTransfersection() {
-  transferSection.classList.add("active");
+// ======================= POPUP ======================= //
+function openTransfer() {
+  transferSection.style.display = "block";
   document.body.classList.add("popup-open");
 }
 
-// Beneficiaries
-const beneficiaries = getbeneficiaries(user.id);
+function closeTransfer() {
+  transferSection.style.display = "none";
+  document.body.classList.remove("popup-open");
+}
+function openTopup() {
+  topupSection.style.display = "block";
+  document.body.classList.add("popup-open");
+}
 
+function closeTopup() {
+  topupSection.style.display = "none";
+  document.body.classList.remove("popup-open");
+}
+// ======================= DATA LOAD ======================= //
 function renderBeneficiaries() {
-  beneficiaries.forEach((beneficiary) => {
+  const beneficiaries = getbeneficiaries(user.id);
+
+  beneficiaries.forEach(b => {
     const option = document.createElement("option");
-    option.value = beneficiary.id;
-    option.textContent = beneficiary.name;
+    option.value = b.id;
+    option.textContent = b.name;
     beneficiarySelect.appendChild(option);
   });
 }
-renderBeneficiaries();
+
 function renderCards() {
-  user.wallet.cards.forEach((card) => {
+  user.wallet.cards.forEach(card => {
     const option = document.createElement("option");
     option.value = card.numcards;
-    option.textContent = card.type+"****"+card.numcards;
+    option.textContent = `${card.type} **** ${card.numcards}`;
     sourceCard.appendChild(option);
   });
 }
 
+function renderTopupCards() {
+  user.wallet.cards.forEach(card => {
+    const option = document.createElement("option");
+    option.value = card.numcards;
+    option.textContent = `${card.type} **** ${card.numcards}`;
+    topupCard.appendChild(option);
+  });
+}
+
+renderTopupCards();
+
+renderBeneficiaries();
 renderCards();
 
-//###################################  Transfer  #####################################################//
-
-// check function 
-
-/* function checkUser(numcompte, callback) {
-  setTimeout(() => {
-    const destinataire = finduserbyaccount(numcompte);
-    if (destinataire) {
-      callback(destinataire);
-    } else {
-      console.log("Destinataire non trouvé");
-    }
-  }, 500);
+// ======================= ASYNC HELPERS ======================= //
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function checkSolde(exp, amount, callback) {
-  setTimeout(() => {
-    const solde = exp.wallet.balance;
-    if (solde >= amount) {
-      callback("Solde suffisant");
-    } else {
-      callback("Solde insuffisant");
-    }
-  }, 400);
+async function checkUser(userId) {
+  await delay(500);
+  const beneficiary = database.users.find(u => u.id === userId);
+  if (!beneficiary) throw "Beneficiary not found";
+  return beneficiary;
+}
+async function checkBalance(expediteur, amount) {
+  await delay(500);
+  if (expediteur.wallet.balance < amount) {
+    throw "Insufficient balance";
+  }
 }
 
-function updateSolde(exp, destinataire, amount, callback) {
-  setTimeout(() => {  
-    exp.wallet.balance -= amount;
-    destinataire.wallet.balance += amount;
-    callback("Solde mis à jour");
-  }, 300);
+async function updateBalance(expediteur, destinataire, amount) {
+  await delay(200);
+  expediteur.wallet.balance -= amount;
+  destinataire.wallet.balance += amount;
 }
 
+async function addTransactions(expediteur, destinataire, amount) {
+  await delay(300);
 
-function addtransactions(exp, destinataire, amount, callback) {
-  setTimeout(() => { 
-    // Transaction pour l'expéditeur (débit)
-    const transactionDebit = {
-      id: Date.now(),
-      type: "debit",
-      amount: amount,
-      from: exp.name,
-      to: destinataire.name,
-      date: new Date().toLocaleDateString()
-    };
+  const now = Date.now();
 
-    // Transaction pour le destinataire (crédit)
-    const transactionCredit = {
-      id: Date.now() + 1,
-      type: "credit",
-      amount: amount,
-      from: exp.name,
-      to: destinataire.name,
-      date: new Date().toLocaleDateString()
-    };
+  const debit = {
+    id: now,
+    type: "debit",
+    amount,
+    date: new Date().toLocaleString(),
+    to: destinataire.name
+  };
 
-    user.wallet.transactions.push(transactionDebit);
-    destinataire.wallet.transactions.push(transactionCredit);
+  const credit = {
+    id: now + 1,
+    type: "credit",
+    amount,
+    date: new Date().toLocaleString(),
+    from: expediteur.name
+  };
+
+  expediteur.wallet.transactions.push(debit);
+  destinataire.wallet.transactions.push(credit);
+}
+
+// ======================= MAIN TRANSFER ======================= //
+async function transfer(expediteur, account, amount) {
+  try {
+    console.log("Starting transfer...");
+
+    const destinataire = await checkUser(account);
+    console.log("Step 1: User found");
+
+    await checkBalance(expediteur, amount);
+    console.log("Step 2: Balance OK");
+
+    await updateBalance(expediteur, destinataire, amount);
+    console.log("Step 3: Balance updated");
+
+    await addTransactions(expediteur, destinataire, amount);
+    console.log("Step 4: Transactions added");
+
+    sessionStorage.setItem("currentUser", JSON.stringify(expediteur));
+sessionStorage.setItem(`user_${destinataire.id}`, JSON.stringify(destinataire));
+
     renderDashboard();
-    callback("Transaction enregistrée");
-  }, 200);
+    closeTransfer();
+
+    
+
+  } catch (error) {
+    console.error(error);
+    
+  }
 }
 
+// ======================= HANDLER ======================= //
+function handleTransfer(e) {
+  e.preventDefault();
 
-export function transferer(exp, numcompte, amount) {
-  console.log("\n DÉBUT DU TRANSFERT ");
+  const beneficiaryId = beneficiarySelect.value;
+  const beneficiaryData = findbeneficiarieByid(user.id, beneficiaryId);
 
-  // Étape 1: Vérifier le destinataire
-  checkUser(numcompte, function afterCheckUser(destinataire) {
-    console.log("Étape 1: Destinataire trouvé -", destinataire.name);
+  if (!beneficiaryData) {
+    
+    return;
+  }
 
-    // Étape 2: Vérifier le solde
-    checkSolde(exp, amount, function afterCheckSolde(soldemessage) {
-      console.log(" Étape 2:", soldemessage);
+  const amount = Number(document.getElementById("amount").value);
 
-      if (soldemessage.includes("Solde suffisant")) {
-        // Étape 3: Mettre à jour les soldes
-        updateSolde(exp, destinataire, amount, function afterUpdateSolde(updatemessage) {
-          console.log(" Étape 3:", updatemessage);
+  if (amount <= 0 || isNaN(amount)) {
+    
+    return;
+  }
 
-          // Étape 4: Enregistrer la transaction
-          addtransactions(exp, destinataire, amount, function afterAddTransactions(transactionMessage) {
-            console.log(" Étape 4:", transactionMessage);
-            console.log(`Transfert de ${amount} réussi!`);
-          });
+  transfer(user, beneficiaryData.id, amount);
+
+}
+// ======================= RECHARGE ======================= //
+function validateAmount(amount) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (!amount || isNaN(amount) || amount <= 0) {
+        reject("Montant invalide : doit être supérieur à zéro.");
+      } else if (amount < 10) {
+        reject("Montant minimum : 10 MAD.");
+      } else if (amount > 10000) {
+        reject("Montant maximum : 10 000 MAD.");
+      } else {
+        resolve(amount);
+      }
+    }, 300);
+  });
+}
+
+function validateCard(numcards) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const card = user.wallet.cards.find(c => c.numcards === numcards);
+      if (!card) {
+        reject("Moyen de paiement introuvable.");
+        return;
+      }
+      const [day, month, year] = card.expiry.split("-").map(Number);
+      const expiry = new Date(2000 + year, month - 1, day);
+      if (expiry < new Date()) {
+        reject("Cette carte est expirée.");
+        return;
+      }
+      resolve(card);
+    }, 400);
+  });
+}
+
+function processRecharge(amount) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      try {
+        user.wallet.balance += amount;
+        const transaction = {
+          id: Date.now(),
+          type: "recharge",
+          amount,
+          date: new Date().toLocaleString(),
+          status: "success"
+        };
+        user.wallet.transactions.push(transaction);
+        sessionStorage.setItem("currentUser", JSON.stringify(user));
+        resolve(transaction);
+      } catch (e) {
+        user.wallet.transactions.push({
+          id: Date.now(),
+          type: "recharge",
+          amount,
+          date: new Date().toLocaleString(),
+          status: "failed"
         });
+        reject("Échec du rechargement.");
       }
-    });
+    }, 500);
   });
 }
 
-
-function handleTransfer(e) {
- e.preventDefault();
-  const beneficiaryId = document.getElementById("beneficiary").value;
-  const beneficiaryAccount=findbeneficiarieByid(user.id,beneficiaryId).account;
-  const sourceCard = document.getElementById("sourceCard").value;
-
-  const amount = Number(document.getElementById("amount").value);
-
-  
-  transferer(user, beneficiaryAccount, amount);
-
-} */
-
-function checkUser(numcompte) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const beneficiary = finduserbyaccount(numcompte);
-      if (beneficiary) {
-        resolve(beneficiary);
-      } else {
-        reject("Beneficiary not found");
-      }
-    }, 2000);
-  });
+async function recharge(numcards, amount) {
+  try {
+    await validateAmount(amount);
+    await validateCard(numcards);
+    await processRecharge(amount);
+    renderDashboard();
+    closeTopup();
+    alert("succes ");
+    
+  } catch (error) {
+    
+  }
 }
 
-function checkSolde(expediteur, amount) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (expediteur.wallet.balance >= amount) {
-        resolve("Sufficient balance");
-      } else {
-        reject("Insufficient balance");
-      }
-    }, 3000);
-  });
+function handleTopup(e) {
+  e.preventDefault();
+  const numcards = topupCard.value;
+  const amount = Number(document.getElementById("topupAmount").value);
+  recharge(numcards, amount);
 }
-
-function updateSolde(expediteur, destinataire, amount) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      expediteur.wallet.balance -= amount;
-      destinataire.wallet.balance += amount;
-      resolve("Balance update done");
-    }, 200);
-  });
-}
-
-function addtransactions(expediteur, destinataire, amount) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const credit = {
-        id: Date.now(),
-        type: "credit",
-        amount: amount,
-        date: new Date().toLocaleString(),
-        from: expediteur.name
-      }
-       //create debit transaction
-      const debit = {
-        id: Date.now(),
-        type: "debit",
-        amount: amount,
-        date: new Date().toLocaleString(),
-        to: destinataire.name,
-      };
-      expediteur.wallet.transactions.push(debit);
-      destinataire.wallet.transactions.push(credit);
-      resolve("Transaction added successfully");
-    }, 3000);
-  });
-}
-
-// **************************************transfer***************************************************//
-
-function transfer(expediteur, numcompte, amount) {
-  console.log("Starting transfer...");
-
-  checkUser(numcompte)
-    .then((destinataire) => {
-      console.log("Step 1: Destinataire found -", destinataire.name);
-      return checkSolde(expediteur, amount).then(() => destinataire);
-    })
-    .then((destinataire) => {
-      console.log("Step 2: Balance verified");
-      return updateSolde(expediteur, destinataire, amount).then(() => destinataire);
-    })
-    .then((destinataire) => {
-      console.log("Step 3: Balances updated");
-      return addtransactions(expediteur, destinataire, amount);
-    })
-    .then((message) => {
-      console.log("Step 4:", message);
-      renderDashboard(); 
-      closeTransfer();    
-    })
-    .catch((error) => {
-      console.error("Transfer Failed:", error);
-      alert(error);
-    });
-}
-
-
-function handleTransfer(e) {
- e.preventDefault();
-  const beneficiaryId = document.getElementById("beneficiary").value;
-  const beneficiaryAccount=findbeneficiarieByid(user.id,beneficiaryId).account;
-  const sourceCard = document.getElementById("sourceCard").value;
-
-  const amount = Number(document.getElementById("amount").value);
-
-transfer(user, beneficiaryAccount, amount);
-
-} 
-
-/*
-    function func1(number,callback){
-        console.log("start function");
-       if(number%2===0){
-        console.log("start callback");
-        callback(number);
-        console.log("end callback");
-       }else{
-        
-       }
-       console.log("end function");
-    }
-
-    function produit(number){
-        console.log("the result is : ", (number*number));
-    }
-
-    func1(4,produit);
-    */
