@@ -1126,3 +1126,10 @@ footer {
     display: none;
   }
 }
+.transfer-section {
+  display: none;
+}
+
+.transfer-section.active {
+  display: block;
+}
