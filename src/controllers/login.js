@@ -1,5 +1,5 @@
 
-import {finduserbymail} from "../Model/database.js";
+import finduserbymail from "../models/database.js";
 
 // recuperation des elements DOM
 const mailInput = document.getElementById("mail");
@@ -13,18 +13,21 @@ function handleSubmit() {
     let mail = mailInput.value;
     let password = passwordInput.value;
 
-    if (!mail || password === "") {
-        alert("Bad credentials.");
+    if (!mail || !password) {
+        return;
     } else {
         submitBtn.textContent = "Checking!!!";
         const user = finduserbymail(mail, password);
 
         setTimeout(() => {
-            if (user) {
-                sessionStorage.setItem("currentUser", JSON.stringify(user));
-                document.location = "dashboard.html";
-            } else {
-                alert("Bad credentials.");
+          
+if (user) {
+    const stored = sessionStorage.getItem(`user_${user.id}`);
+    const currentUser = stored ? JSON.parse(stored) : user;
+    sessionStorage.setItem("currentUser", JSON.stringify(currentUser));
+    document.location = "/src/view/dashboard.html";
+} else {
+                
                 submitBtn.textContent = "Se connecter";
             }
         }, 2000);
