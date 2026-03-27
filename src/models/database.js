@@ -42,6 +42,17 @@ const database = {
 const finduserbymail = (mail, password) => {
     return database.users.find(u => u.email === mail && u.password === password);
 };
+const finduserbyaccount = (numcompte) => {
+    return database.users.find(u => u.wallet.cards.some(c => c.numcards === numcompte));
+};
 
-export { database };
+const getbeneficiaries = (userId) => {
+    return database.users.filter(u => u.id !== userId);
+};
+
+const findbeneficiarieByid = (userId, beneficiaryId) => {
+    return database.users.find(u => u.id === beneficiaryId);
+};
+
+export { database, finduserbyaccount, getbeneficiaries, findbeneficiarieByid };
 export default finduserbymail;
