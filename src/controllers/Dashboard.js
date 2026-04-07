@@ -4,7 +4,6 @@ const user = JSON.parse(sessionStorage.getItem("currentUser"));
 
 // ======================= GUARD ======================= //
 if (!user) {
-  
   window.location.href = "/index.html";
 }
 
@@ -43,6 +42,7 @@ topupBtn.addEventListener("click", openTopup);
 closeTopupBtn.addEventListener("click", closeTopup);
 cancelTopupBtn.addEventListener("click", closeTopup);
 submitTopupBtn.addEventListener("click", handleTopup);
+
 // ======================= DASHBOARD ======================= //
 function getDashboardData() {
   const monthlyIncome = user.wallet.transactions
@@ -99,6 +99,7 @@ function closeTransfer() {
   transferSection.style.display = "none";
   document.body.classList.remove("popup-open");
 }
+
 function openTopup() {
   topupSection.style.display = "block";
   document.body.classList.add("popup-open");
@@ -108,6 +109,7 @@ function closeTopup() {
   topupSection.style.display = "none";
   document.body.classList.remove("popup-open");
 }
+
 // ======================= DATA LOAD ======================= //
 function renderBeneficiaries() {
   const beneficiaries = getbeneficiaries(user.id);
@@ -139,7 +141,6 @@ function renderTopupCards() {
 }
 
 renderTopupCards();
-
 renderBeneficiaries();
 renderCards();
 
@@ -151,13 +152,14 @@ function delay(ms) {
 async function checkUser(userId) {
   await delay(500);
   const beneficiary = database.users.find(u => u.id === userId);
-  if (!beneficiary) throw "Beneficiary not found";
+  if (!beneficiary) throw new Error("Beneficiary not found");
   return beneficiary;
 }
+
 async function checkBalance(expediteur, amount) {
   await delay(500);
   if (expediteur.wallet.balance < amount) {
-    throw "Insufficient balance";
+    throw new Error("Insufficient balance");
   }
 }
 
@@ -210,16 +212,14 @@ async function transfer(expediteur, account, amount) {
     console.log("Step 4: Transactions added");
 
     sessionStorage.setItem("currentUser", JSON.stringify(expediteur));
-sessionStorage.setItem(`user_${destinataire.id}`, JSON.stringify(destinataire));
+    sessionStorage.setItem(`user_${destinataire.id}`, JSON.stringify(destinataire));
 
     renderDashboard();
     closeTransfer();
 
-    
-
   } catch (error) {
-    console.error(error);
-    
+    console.error("Transfer failed:", error.message);
+    // TODO: display error.message in the UI instead of alert
   }
 }
 
@@ -231,96 +231,93 @@ function handleTransfer(e) {
   const beneficiaryData = findbeneficiarieByid(user.id, beneficiaryId);
 
   if (!beneficiaryData) {
-    
+    // TODO: show UI error — beneficiary not found
     return;
   }
 
   const amount = Number(document.getElementById("amount").value);
 
   if (amount <= 0 || isNaN(amount)) {
-    
+    // TODO: show UI error — invalid amount
     return;
   }
 
   transfer(user, beneficiaryData.id, amount);
-
-}
-// ======================= RECHARGE ======================= //
-function validateAmount(amount) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (!amount || isNaN(amount) || amount <= 0) {
-        reject("Montant invalide : doit être supérieur à zéro.");
-      } else if (amount < 10) {
-        reject("Montant minimum : 10 MAD.");
-      } else if (amount > 10000) {
-        reject("Montant maximum : 10 000 MAD.");
-      } else {
-        resolve(amount);
-      }
-    }, 300);
-  });
 }
 
-function validateCard(numcards) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const card = user.wallet.cards.find(c => c.numcards === numcards);
-      if (!card) {
-        reject("Moyen de paiement introuvable.");
-        return;
-      }
-      const [day, month, year] = card.expiry.split("-").map(Number);
-      const expiry = new Date(2000 + year, month - 1, day);
-      if (expiry < new Date()) {
-        reject("Cette carte est expirée.");
-        return;
-      }
-      resolve(card);
-    }, 400);
-  });
+// ======================= RECHARGE HELPERS ======================= //
+
+// Replaced: new Promise((resolve, reject) => { setTimeout(...) })
+// With:     async function + await delay() + throw new Error()
+
+async function validateAmount(amount) {
+  await delay(300);
+  if (!amount || isNaN(amount) || amount <= 0) {
+    throw new Error("Montant invalide : doit être supérieur à zéro.");
+  }
+  if (amount < 10) {
+    throw new Error("Montant minimum : 10 MAD.");
+  }
+  if (amount > 10000) {
+    throw new Error("Montant maximum : 10 000 MAD.");
+  }
+  return amount;
 }
 
-function processRecharge(amount) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      try {
-        user.wallet.balance += amount;
-        const transaction = {
-          id: Date.now(),
-          type: "recharge",
-          amount,
-          date: new Date().toLocaleString(),
-          status: "success"
-        };
-        user.wallet.transactions.push(transaction);
-        sessionStorage.setItem("currentUser", JSON.stringify(user));
-        resolve(transaction);
-      } catch (e) {
-        user.wallet.transactions.push({
-          id: Date.now(),
-          type: "recharge",
-          amount,
-          date: new Date().toLocaleString(),
-          status: "failed"
-        });
-        reject("Échec du rechargement.");
-      }
-    }, 500);
-  });
+async function validateCard(numcards) {
+  await delay(400);
+  const card = user.wallet.cards.find(c => c.numcards === numcards);
+  if (!card) {
+    throw new Error("Moyen de paiement introuvable.");
+  }
+  const [day, month, year] = card.expiry.split("-").map(Number);
+  const expiry = new Date(2000 + year, month - 1, day);
+  if (expiry < new Date()) {
+    throw new Error("Cette carte est expirée.");
+  }
+  return card;
 }
 
+async function processRecharge(amount) {
+  await delay(500);
+  try {
+    user.wallet.balance += amount;
+    const transaction = {
+      id: Date.now(),
+      type: "recharge",
+      amount,
+      date: new Date().toLocaleString(),
+      status: "success"
+    };
+    user.wallet.transactions.push(transaction);
+    sessionStorage.setItem("currentUser", JSON.stringify(user));
+    return transaction;
+  } catch {
+    user.wallet.transactions.push({
+      id: Date.now(),
+      type: "recharge",
+      amount,
+      date: new Date().toLocaleString(),
+      status: "failed"
+    });
+    throw new Error("Échec du rechargement.");
+  }
+}
+
+// ======================= MAIN RECHARGE ======================= //
 async function recharge(numcards, amount) {
   try {
     await validateAmount(amount);
     await validateCard(numcards);
     await processRecharge(amount);
+
     renderDashboard();
     closeTopup();
-    alert("succes ");
-    
+    alert("Rechargement effectué avec succès.");
+
   } catch (error) {
-    
+    console.error("Recharge failed:", error.message);
+    // TODO: display error.message in the UI instead of alert
   }
 }
 
